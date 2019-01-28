@@ -402,7 +402,7 @@ func TestChildWatch(t *testing.T) {
 		t.Fatalf("Delete returned error: %+v", err)
 	}
 
-	children, stat, childCh, err := zk.ChildrenW("/")
+	children, stat, childWatcher, err := zk.ChildrenW("/")
 	if err != nil {
 		t.Fatalf("Children returned error: %+v", err)
 	} else if stat == nil {
@@ -418,7 +418,7 @@ func TestChildWatch(t *testing.T) {
 	}
 
 	select {
-	case ev := <-childCh:
+	case ev := <-childWatcher.EvCh:
 		if ev.Err != nil {
 			t.Fatalf("Child watcher error %+v", ev.Err)
 		}
@@ -431,7 +431,7 @@ func TestChildWatch(t *testing.T) {
 
 	// Delete of the watched node should trigger the watch
 
-	children, stat, childCh, err = zk.ChildrenW("/gozk-test")
+	children, stat, childWatcher, err = zk.ChildrenW("/gozk-test")
 	if err != nil {
 		t.Fatalf("Children returned error: %+v", err)
 	} else if stat == nil {
@@ -445,7 +445,7 @@ func TestChildWatch(t *testing.T) {
 	}
 
 	select {
-	case ev := <-childCh:
+	case ev := <-childWatcher.EvCh:
 		if ev.Err != nil {
 			t.Fatalf("Child watcher error %+v", ev.Err)
 		}
@@ -502,14 +502,14 @@ func TestSetWatchers(t *testing.T) {
 			t.Fatalf("Create returned: %+v", err)
 		}
 		testPaths[testPath] = nil
-		_, _, testEvCh, err := zk.GetW(testPath)
+		_, _, testWatcher, err := zk.GetW(testPath)
 		if err != nil {
 			t.Fatalf("GetW returned: %+v", err)
 		}
-		testPaths[testPath] = testEvCh
+		testPaths[testPath] = testWatcher.EvCh
 	}
 
-	children, stat, childCh, err := zk.ChildrenW("/")
+	children, stat, childWatcher, err := zk.ChildrenW("/")
 	if err != nil {
 		t.Fatalf("Children returned error: %+v", err)
 	} else if stat == nil {
@@ -542,7 +542,7 @@ func TestSetWatchers(t *testing.T) {
 		}
 	}
 	select {
-	case <-childCh:
+	case <-childWatcher.EvCh:
 		t.Fatalf("ChildrenW watcher should not have triggered yet")
 	default:
 	}
@@ -565,7 +565,7 @@ func TestSetWatchers(t *testing.T) {
 	}
 
 	select {
-	case ev := <-childCh:
+	case ev := <-childWatcher.EvCh:
 		if ev.Err != nil {
 			t.Fatalf("Child watcher error %+v", ev.Err)
 		}
@@ -616,7 +616,7 @@ func TestExpiringWatch(t *testing.T) {
 		t.Fatalf("Delete returned error: %+v", err)
 	}
 
-	children, stat, childCh, err := zk.ChildrenW("/")
+	children, stat, childWatcher, err := zk.ChildrenW("/")
 	if err != nil {
 		t.Fatalf("Children returned error: %+v", err)
 	} else if stat == nil {
@@ -629,7 +629,7 @@ func TestExpiringWatch(t *testing.T) {
 	zk.conn.Close()
 
 	select {
-	case ev := <-childCh:
+	case ev := <-childWatcher.EvCh:
 		if ev.Err != ErrSessionExpired {
 			t.Fatalf("Child watcher error %+v instead of expected ErrSessionExpired", ev.Err)
 		}
@@ -696,7 +696,7 @@ func TestSlowServer(t *testing.T) {
 	}
 	defer zk.Close()
 
-	_, _, wch, err := zk.ChildrenW("/")
+	_, _, w, err := zk.ChildrenW("/")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -718,7 +718,7 @@ func TestSlowServer(t *testing.T) {
 
 	// Make sure event is still returned because the session should not have been affected
 	select {
-	case ev := <-wch:
+	case ev := <-w.EvCh:
 		t.Logf("Received event: %+v", ev)
 	case <-time.After(time.Second):
 		t.Fatal("Expected to receive a watch event")

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/samuel/go-zookeeper/zk"
+	"github.com/meitu/go-zookeeper/zk"
 )
 
 func main() {
@@ -12,11 +12,11 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	children, stat, ch, err := c.ChildrenW("/")
+	children, stat, watcher, err := c.ChildrenW("/")
 	if err != nil {
 		panic(err)
 	}
 	fmt.Printf("%+v %+v\n", children, stat)
-	e := <-ch
+	e := <-watcher.EvCh
 	fmt.Printf("%+v\n", e)
 }
